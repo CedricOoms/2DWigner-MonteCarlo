@@ -7,11 +7,11 @@
 % T = temperature (units of T_0)
 % int_pot (str) = interaction potential -> 'Coulomb' or 'LJ'
 % voronoi_plot = 0 or 1 
-function mean_dR=monte_carlo2D(int_pot,its,N,mc_steps,T)
+function mean_dR=monte_carlo2D(int_pot,its,N,mc_steps,T,vor)
     E_GS_it=[]; %Vector that stores end energy of the crystallized state (T=0K) every MC simulation (aka iteration)
     close all;
-    if T==0
-        vor=input("Show as Voronoi plot? Yes = 1, no = 0\n");
+    if T ~= 0
+        vor=0;
     end
     mean_dR=[]; %Vector holding mean displacement for every simulation run
     for i=1:its
@@ -26,16 +26,7 @@ function mean_dR=monte_carlo2D(int_pot,its,N,mc_steps,T)
         [config_T0,E_T0,~]=MC_Routine(int_pot,N,mc_steps,d_max,config_init,0,0); %Configuration at T=0K
         E_GS_it(end+1)=E_T0;
         %Plot for result:
-        if strcmp(int_pot,'Coulomb')
-            r_units='$(\frac{q^2}{\epsilon})^{1/3}\alpha^{-1/3}$';
-            E_units='$(\frac{q^2}{\epsilon})^{2/3}\alpha^{1/3}$';
-            T_units='$(\frac{q^2}{\epsilon})^{2/3}\alpha^{1/3}k_B^{-1}$';
-        elseif strcmp(int_pot,'LJ')
-            r_units='$\sigma$';
-            E_units='$\alpha\sigma^2$';
-            T_units='$\alpha\sigma^2k_B^{-1}$';
-        end
-        f=figure(i);
+        f=figure();
         if T ~= 0
             %Start Monte-Carlo for heated up sample, starting from the
             %crystallized configuration at T=0K:
@@ -66,10 +57,7 @@ function mean_dR=monte_carlo2D(int_pot,its,N,mc_steps,T)
             hold off;
             legend([p_traj p_T0 p_T],'Trajectories','Starting configuration (T=0)','End configuration')
             title_text=append(sprintf('T=%.3f $T_0$, applied for %d MC steps, E/N=%2.4f $E_0$',[T mc_steps E_T]));
-            xlabel(append('x [',r_units,']'),'interpreter','latex');
-            ylabel(append('y [',r_units,']'),'interpreter','latex');
             subplot(1,2,2);
-            %p_T2=scatter(config_T(1,(mc_steps*N+1):end),config_T(2,(mc_steps*N+1):end),25,'red'); %Position at end of MC sim with applied heating
             p_T2=voronoi(config_T(1,(mc_steps*N+1):end),config_T(2,(mc_steps*N+1):end)); %Position at end of MC sim with applied heating
         else
             title_text=append(sprintf('T=0 $T_0$, applied for %d MC steps, E/N=%2.4f $E_0$',[mc_steps E_T0]));
@@ -81,11 +69,17 @@ function mean_dR=monte_carlo2D(int_pot,its,N,mc_steps,T)
             sgtitle({title_text,subtitle},'interpreter','latex')
         end
         title({title_text,subtitle},'interpreter','latex')
-        xlabel(append('x [',r_units,']'),'interpreter','latex');
-        ylabel(append('y [',r_units,']'),'interpreter','latex');
         box on %apply edges around each plot 'box'
         axis image %Keep aspectratio (keep ratio when rescaling plot)
+        saveas(f,append('Configuration ', string(i)));
+        close(f);
     end
-    figure(i+1);
-    scatter(1:1:length(E_GS_it),E_GS_it);
+    ff=figure();
+    scatter(1:1:length(E_GS_it),round(E_GS_it,4),'filled','d');
+    title(['Energy per obtained configuration for N = ',num2str(N)]);
+    xlabel('Configuration');
+    ylabel('E/N');
+    curtick = get(gca, 'xTick');
+    xticks(unique(round(curtick)));
+    saveas(ff,append('EnergyPlot_N',num2str(N)));
 end
