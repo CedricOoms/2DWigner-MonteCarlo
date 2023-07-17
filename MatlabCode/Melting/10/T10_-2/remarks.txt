@@ -1,0 +1,1 @@
+Configuration 2: intershell movement -> transition from ground state (2, 8) to metastable state (3, 7)
